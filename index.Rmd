@@ -1,0 +1,92 @@
+---
+title: "Forecasting Foreign Exchange Rate Trend with Exponential Smoothing (ETS)"
+author: "Author: Poo, L. S."
+date: "Date: `r format(Sys.Date(), '%d %B %Y')`"
+output: 
+  html_document: 
+    keep_md: TRUE
+---
+
+## Reading Data
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+library(quantmod)
+library(forecast)
+library(plotly)
+
+myforex <- read.table("forex.txt",
+                      header = TRUE)
+myts <- ts(myforex,
+           start = c(1997, 2),
+           frequency = 4)
+myts
+```
+
+## Chart Series
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+chartSeries(myts,
+            name = "MYR/USD")
+```
+
+## Simple Moving Average (Average Over 3 Periods)
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+plot(SMA(myts,
+         n = 3))
+```
+
+## Decomposition
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+plot(decompose(myts,
+               type = "multiplicative"))
+```
+
+## ETS Model (Multiplicative Error, Multiplicative Trend, Multiplicative Season)
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+myets <- ets(myts,
+             model = "MMM")
+myets
+```
+
+## Forecast
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+myfcast <- forecast(myets,
+                    level = 95)
+plot_ly() %>%
+    add_lines(x = time(myfcast$x),
+              y = myfcast$x,
+              color = I("black"),
+              name = "Observed Data",
+              line = list(width = 2)) %>%
+    add_lines(x = time(myfcast$fitted),
+              y = myfcast$fitted,
+              color = I("red"),
+              name = "Fitted Model",
+              line = list(width = 1)) %>%
+    add_lines(x = time(myfcast$mean),
+              y = myfcast$mean,
+              color = I("blue"),
+              name = "Forecast",
+              line = list(width = 2)) %>%
+    add_ribbons(x = time(myfcast$mean),
+                ymin = myfcast$lower,
+                ymax = myfcast$upper,
+                color = I("gray"),
+                name = "95% Confidence") %>%
+    layout(title = paste("Foreign Exchange Rate Trend Forecast for MYR/USD with",
+                         myets$method),
+           xaxis = list(title = "Year"),
+           yaxis = list(title = "Foreign Exchange Rate (MYR/USD)"))
+```
+
+## Accuracy
+
+```{r message=FALSE, warning=FALSE, fig.width=9}
+accuracy(myfcast)
+```
+
+***DISCLAIMER: This article is for educational purposes only. The data and forecast accuracies are not guaranteed.***
